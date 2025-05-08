@@ -71,4 +71,6 @@ export default function optimizer(
 
     combinations = newCombinations;
   });
+
+  return combinations;
 }

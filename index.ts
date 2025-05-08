@@ -1,3 +1,4 @@
+import createStrategy from "./lib/createStrategy";
 import optimizer from "./lib/optimizer";
 import { OptimizationTarget, OptimizedParameterType } from "./types";
 
@@ -32,27 +33,23 @@ const optimizedParameters = optimizer(
   }
 );
 
-// const strategy = createStrategy((candles, parameters, store) => {
-//   const closes = candles.map((candle) => candle[4]);
-//   const ma = parameters.get("maType") === "exponential" ? ta.ema : ta.sma;
-//   const shortMa = ma({ values: closes, period: parameters.get("shortMa") });
-//   const longMa = ma({ values: closes, period: parameters.get("longMa") });
-//   const latestClose = closes.at(-1);
+const strategy = createStrategy((candles, parameters, manager, store) => {
+  const closes = candles.map((candle) => candle[4]);
+  const ma = parameters.get("maType") === "exponential" ? ta.ema : ta.sma;
+  const shortMa = ma({ values: closes, period: parameters.get("shortMa") });
+  const longMa = ma({ values: closes, period: parameters.get("longMa") });
+  const latestClose = closes.at(-1);
+  const latestTrade = manager.positions.at(-1)
+  const side = shortMa > longMa ? "long": "short";
+  const oppositeSide = side === "short" ? "long": "short";
 
-//   if (shortMa > longMa) {
-//     return new StrategyOrder({
-//       side: "long",
-//       size: store.get("capital") * 0.1,
-//     });
-//   } else if (shortMa < longMa) {
-//     return new StrategyOrder({
-//       side: "short",
-//       size: store.get("capital") * 0.1,
-//     });
-//   }
-// });
+  if(latestTrade.side === oppositeSide && !latestTrade.closed) latestTrade.close();
 
-// const backtestResults = backtest(DataView, strategy, optimizedParameters, { 
+  // entry and exit is captured by manager
+  manager.createPosition({ side })
+});
+
+// const backtestResults = backtest(data, strategy, optimizedParameters, { 
 //     concurrency: Concurrency.Full
 // })
 

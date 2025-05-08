@@ -31,7 +31,35 @@ export enum OptimizedParameterType {
  export interface OptimizerConfig { 
      targets: { [factor: string]: number }
  }
+
+ export type OHLCV = [number, number, number, number, number, number]
  
+ export interface BacktestOptions { 
+    concurrency: ConcurrencyMode;
+    initialCapital?: number;
+    fees: number;
+    slippage: number;
+ }
+
+ export interface BacktestResults { 
+    winRate: number;
+    profitFactor: number;
+    sharpe: number;
+    alpha: number;
+    beta: number;
+    totalReturns: number;
+    cumalitiveReturns: number[];
+ }
+
+ export interface Trade { 
+    entry: number,
+    exit: number,
+    side: "short" | "long",
+    size?: number,
+    closed?: boolean,
+    pnl?: number,
+ }
+
  export enum ConcurrencyMode { 
      Full, 
      Half,
