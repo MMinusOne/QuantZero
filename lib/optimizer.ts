@@ -13,11 +13,27 @@ const defaultConfig: OptimizerConfig = {
   },
 };
 
+interface Combination {
+  name: string;
+  value: string;
+}
+
 export default function optimizer(
   parameters: ParameterOptimizationType[],
   config: OptimizerConfig = defaultConfig
 ) {
-  const combinations: any[] = [];
+  let totalTargetScore = 0;
+
+  Object.keys(config.targets).forEach((targetKey) => {
+    const targetValue = config.targets[targetKey] || 0;
+    totalTargetScore += targetValue;
+  });
+
+  if (totalTargetScore !== 100) {
+    throw `Total score does not equal 100, its ${totalTargetScore}`;
+  }
+
+  let combinations: any[] = [{}];
   const compiledParameters: { name: string; values: any[] }[] = [];
 
   for (const parameter of parameters) {
@@ -42,5 +58,17 @@ export default function optimizer(
     compiledParameters.push({ name: parameter.name, values });
   }
 
-  console.log(compiledParameters)
+  compiledParameters.forEach((param) => {
+    const newCombinations: any[] = [];
+
+    combinations.forEach((combo) => {
+      param.values.forEach((value) => {
+        const newCombo = { ...combo };
+        newCombo[param.name] = value;
+        newCombinations.push(newCombo);
+      });
+    });
+
+    combinations = newCombinations;
+  });
 }
