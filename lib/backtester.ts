@@ -1,15 +1,26 @@
-import type { BacktestOptions, BacktestResults, OHLCV, Trade } from "../types";
+import {
+  ConcurrencyMode,
+  type BacktestOptions,
+  type BacktestResults,
+  type OHLCV,
+} from "../types";
 import type StrategyOrder from "./classes/StrategyOrder";
+import { Worker } from "node:worker_threads";
+import type Trade from "./Trade";
+import os from "os";
+
+const cpus = os.cpus().length;
+
+const defaultOptions: BacktestOptions = {
+  concurrency: ConcurrencyMode.Full,
+  fees: 0,
+};
 
 export default function backtest(
   data: OHLCV[],
-  strategy: (
-    candles: OHLCV[],
-    parameters: Map<string, any>,
-    store: Map<string, any>
-  ) => Trade | null,
+  strategyPath: string,
   parameters: any,
-  options: BacktestOptions
+  options: BacktestOptions = defaultOptions
 ): BacktestResults {
   const parametersMap = new Map();
   const store = new Map();
@@ -29,22 +40,29 @@ export default function backtest(
   let alpha = 0;
   let beta = 0;
   let totalReturns = 0;
+  let concurrencyCount = 1;
 
-  for (let i = 0; i < data.length; i++) {
-    const trade: Trade | null = strategy(
-      data.splice(0, i),
-      parametersMap,
-      store
-    );
-    const candle = data.at(i);
-
-    if (trade) {
-      trades.push(trade);
-      store.set("trades", [...store.get("trades"), trade]);
-    }
+  if (options.concurrency === ConcurrencyMode.Half) {
+    concurrencyCount = Math.ceil(cpus / 2);
+  } else if (options.concurrency === ConcurrencyMode.Full) {
+    concurrencyCount = cpus;
   }
 
-  console.log(trades);
+  const workers: Worker[] = [];
+
+  for (let i = 0; i < concurrencyCount; i++) {
+    const worker = new Worker("./workers/backtesting.ts");
+    workers.push(worker);
+  }
+
+  let currentWorker = 0;
+
+  parametersMap.forEach((value, key) => {
+    if (!workers.at(currentWorker)) currentWorker = 0;
+    const worker = workers.at(currentWorker);
+    worker?.postMessage({ parameters: value , threadNumber: currentWorker, strategyPath });
+    currentWorker += 1;
+  });
 
   return {
     winRate,

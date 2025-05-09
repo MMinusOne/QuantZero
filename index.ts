@@ -1,6 +1,16 @@
-import createStrategy from "./lib/createStrategy";
+import backtest from "./lib/backtester";
 import optimizer from "./lib/optimizer";
-import { OptimizationTarget, OptimizedParameterType } from "./types";
+import Trade from "./lib/Trade";
+import {
+  ConcurrencyMode,
+  OptimizationTarget,
+  OptimizedParameterType,
+  type OHLCV,
+} from "./types";
+import ta from "technicalindicators";
+import ccxt from "ccxt";
+
+const binance = new ccxt.pro.binance();
 
 const optimizedParameters = optimizer(
   [
@@ -33,24 +43,20 @@ const optimizedParameters = optimizer(
   }
 );
 
-const strategy = createStrategy((candles, parameters, manager, store) => {
-  const closes = candles.map((candle) => candle[4]);
-  const ma = parameters.get("maType") === "exponential" ? ta.ema : ta.sma;
-  const shortMa = ma({ values: closes, period: parameters.get("shortMa") });
-  const longMa = ma({ values: closes, period: parameters.get("longMa") });
-  const latestClose = closes.at(-1);
-  const latestTrade = manager.positions.at(-1)
-  const side = shortMa > longMa ? "long": "short";
-  const oppositeSide = side === "short" ? "long": "short";
 
-  if(latestTrade.side === oppositeSide && !latestTrade.closed) latestTrade.close();
 
-  // entry and exit is captured by manager
-  manager.createPosition({ side })
+const data: OHLCV[] = await binance.fetchOHLCV(
+  "ETH/USDT",
+  "1m",
+  undefined,
+  10_000,
+  { paginate: true }
+)!;
+
+const maCrossOverPath = "./strategy/ma-crossover.ts"
+
+const backtestResults = backtest(data, maCrossOverPath, optimizedParameters, {
+  concurrency: ConcurrencyMode.Full,
 });
-
-// const backtestResults = backtest(data, strategy, optimizedParameters, { 
-//     concurrency: Concurrency.Full
-// })
 
 // const { winRate, profitFactor, sharpe, alpha, beta, totalReturns, cumulativeReturns } = backtestResults;
