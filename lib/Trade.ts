@@ -39,7 +39,9 @@ export default class Trade {
     this.closed = true;
     this.exit = exit;
     this.pnl =
-      this.side === "long" ? this.exit / this.entry : this.entry / this.exit;
+      (this.side === "long"
+        ? 100 * (this.exit / this.entry) - 100
+        : 100 * (this.entry / this.exit) - 100) * this.leverage;
     return this;
   }
 }

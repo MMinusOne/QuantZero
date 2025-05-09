@@ -1,38 +1,12 @@
 import {
   OptimizationTarget,
   OptimizedParameterType,
-  type OptimizerConfig,
   type ParameterOptimizationType,
 } from "../types";
 
-const defaultConfig: OptimizerConfig = {
-  targets: {
-    [OptimizationTarget.Sharpe]: 40,
-    [OptimizationTarget.WinRate]: 30,
-    [OptimizationTarget.ProfitFactor]: 30,
-  },
-};
-
-interface Combination {
-  name: string;
-  value: string;
-}
-
 export default function optimizer(
   parameters: ParameterOptimizationType[],
-  config: OptimizerConfig = defaultConfig
 ) {
-  let totalTargetScore = 0;
-
-  Object.keys(config.targets).forEach((targetKey) => {
-    const targetValue = config.targets[targetKey] || 0;
-    totalTargetScore += targetValue;
-  });
-
-  if (totalTargetScore !== 100) {
-    throw `Total score does not equal 100, its ${totalTargetScore}`;
-  }
-
   let combinations: any[] = [{}];
   const compiledParameters: { name: string; values: any[] }[] = [];
 

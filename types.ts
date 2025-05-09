@@ -30,9 +30,6 @@ export type ParameterOptimizationType =
   | ModeParameterOptimizationType
   | NumericalParameterOptimizationType;
 
-export interface OptimizerConfig {
-  targets: { [factor: string]: number };
-}
 
 export type OHLCV = [number, number, number, number, number, number];
 
@@ -41,6 +38,7 @@ export interface BacktestOptions {
   initialCapital?: number;
   fees?: number;
   slippage?: number;
+  targets: { [factor: string]: number };
 }
 
 export interface BacktestResults {
@@ -51,6 +49,12 @@ export interface BacktestResults {
   beta: number;
   totalReturns: number;
   cumalitiveReturns: number[];
+  stdDev: number;
+}
+
+export interface BestBacktestResults extends BacktestResults { 
+    parameterSet: Map<string, any>;
+    score: number;
 }
 
 export enum ConcurrencyMode {
