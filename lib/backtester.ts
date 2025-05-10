@@ -26,7 +26,7 @@ export default function backtest(
   strategyPath: string,
   parameters: any,
   options: BacktestOptions = defaultOptions
-): Promise<BestBacktestResults> {
+): Promise<BestBacktestResults[]> {
   return new Promise((resolve, reject) => {
     let totalTargetScore = 0;
 
@@ -94,39 +94,7 @@ export default function backtest(
             options.targets
           );
 
-          const bestParameterSet = parametersByScore.at(-1);
-
-          if (!bestParameterSet) return;
-
-          const {
-            backtestId,
-            executionTime,
-            cumulativeReturns,
-            winRate,
-            profitFactor,
-            sharpe,
-            alpha,
-            beta,
-            totalReturns,
-            stdDev,
-            parameterSet,
-            score,
-          } = bestParameterSet;
-
-          resolve({
-            backtestId,
-            executionTime,
-            cumulativeReturns,
-            winRate,
-            profitFactor,
-            sharpe,
-            alpha,
-            beta,
-            totalReturns,
-            stdDev,
-            parameterSet,
-            score,
-          });
+          resolve(parametersByScore);
         }
       });
     }

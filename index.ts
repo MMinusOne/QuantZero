@@ -9,8 +9,9 @@ import {
 } from "./types";
 import path from "path";
 import ccxt from "ccxt";
+import { v4 as uuidv4 } from "uuid";
 
-const binance = new ccxt.pro.binance();
+// const binance = new ccxt.pro.binance();
 
 // const optimizedParameters = optimizer([
 //   {
@@ -37,17 +38,19 @@ const binance = new ccxt.pro.binance();
 const optimizedParameters = optimizer([
   {
     name: "period",
-    start: 10,
-    end: 101,
-    step: 1,
+    start: 30,
+    end: 100,
+    step: 2,
     type: OptimizedParameterType.Numerical,
   },
 ]);
 
 //@ts-ignore
-import data from "./data/ETH_USDT_15m.json";
+import data from "./data/ETH_USDT_1h.json";
 
 const maCrossOverPath = path.join(__dirname, "strategy", "ma.ts");
+
+const backtestGroupId = uuidv4();
 
 const backtestResults = await backtest(
   data,
@@ -63,8 +66,10 @@ const backtestResults = await backtest(
   }
 );
 
-console.log(backtestResults);
+const backtestGroupPath = `./backtests/${backtestGroupId}`;
 
-fs.writeFileSync("./backtest.json", JSON.stringify(backtestResults));
+fs.mkdirSync(backtestGroupPath);
 
-// const { winRate, profitFactor, sharpe, alpha, beta, totalReturns, cumulativeReturns } = backtestResults;
+for(const backtestResult of backtestResults) { 
+  fs.writeFileSync(`./${backtestGroupPath}/${backtestResult.backtestId}.json`, JSON.stringify(backtestResult))
+}

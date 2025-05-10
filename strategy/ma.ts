@@ -21,13 +21,13 @@ export default function strategy(
       latestTrade?.close({ exit: latestClose });
       const trade = new Trade({ entry: latestClose, side })
         .setContracts(1)
-        .setLeverage(1);
+        .setLeverage(5);
       return trade;
     }
   } else {
     const trade = new Trade({ entry: latestClose, side })
       .setContracts(1)
-      .setLeverage(1);
+      .setLeverage(5);
     return trade;
   }
 }
