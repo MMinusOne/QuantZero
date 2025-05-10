@@ -7,7 +7,7 @@ export default class Trade {
   public readonly entry: number;
   public exit?: number;
   public readonly side: "long" | "short";
-  public contracts?: number;
+  public contracts: number = 1;
   public closed?: boolean = false;
   public pnl?: number;
   public leverage: number = 1;
@@ -41,7 +41,9 @@ export default class Trade {
     this.pnl =
       (this.side === "long"
         ? 100 * (this.exit / this.entry) - 100
-        : 100 * (this.entry / this.exit) - 100) * this.leverage;
+        : 100 * (this.entry / this.exit) - 100) *
+      this.leverage *
+      this.contracts;
     return this;
   }
 }

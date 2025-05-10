@@ -54,9 +54,9 @@ export default function backtest(
     let concurrencyCount = 1;
 
     if (options.concurrency === ConcurrencyMode.Half) {
-      concurrencyCount = Math.ceil(cpus / 2);
+      concurrencyCount = Math.max(1, Math.ceil(cpus / 2));
     } else if (options.concurrency === ConcurrencyMode.Full) {
-      concurrencyCount = cpus;
+      concurrencyCount = Math.max(1, cpus);
     }
 
     const workers: Worker[] = [];
@@ -95,6 +95,7 @@ export default function backtest(
           );
 
           resolve(parametersByScore);
+          cleanupWorkers(workers);
         }
       });
     }
@@ -114,7 +115,7 @@ function rankBestParameters(
       backtest.sharpe * (targets[OptimizationTarget.Sharpe] || 0) +
       backtest.alpha * (targets[OptimizationTarget.Alpha] || 0) +
       backtest.beta * (targets[OptimizationTarget.Beta] || 0) +
-      backtest.stdDev * (targets[OptimizationTarget.StdDev] || 0) +
+      backtest.stdDev * -(targets[OptimizationTarget.StdDev] || 0) +
       backtest.totalReturns * (targets[OptimizationTarget.TotalPL] || 0) +
       backtest.winRate * (targets[OptimizationTarget.WinRate] || 0) +
       backtest.profitFactor * (targets[OptimizationTarget.ProfitFactor] || 0);
@@ -125,9 +126,14 @@ function rankBestParameters(
     });
   }
 
-  const bestBacktestResults = backtestResults.sort((a, b) => a.score - b.score);
+  const bestBacktestResults = backtestResults.sort((a, b) => b.score - a.score);
 
   return bestBacktestResults;
 }
 
-//TODO: normilization, some parameters are better when lower, optimization and return correct values
+function cleanupWorkers(workers: Worker[]) {
+  for (const worker of workers) {
+    worker.removeAllListeners();
+    worker.terminate();
+  }
+}

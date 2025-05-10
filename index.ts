@@ -38,15 +38,15 @@ import { v4 as uuidv4 } from "uuid";
 const optimizedParameters = optimizer([
   {
     name: "period",
-    start: 30,
+    start: 10,
     end: 100,
-    step: 2,
+    step: 5,
     type: OptimizedParameterType.Numerical,
   },
 ]);
 
 //@ts-ignore
-import data from "./data/ETH_USDT_1h.json";
+import data from "./data/SOL_USDT_15m.json";
 
 const maCrossOverPath = path.join(__dirname, "strategy", "ma.ts");
 
