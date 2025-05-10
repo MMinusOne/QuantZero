@@ -7,7 +7,6 @@ import {
   type OHLCV,
 } from "../types";
 import { Worker } from "node:worker_threads";
-import type Trade from "./Trade";
 import os from "os";
 
 const cpus = os.cpus().length;
@@ -85,10 +84,11 @@ export default function backtest(
     for (const worker of workers) {
       worker.on("message", (backtestResults: BacktestResults) => {
         backtests.push(backtestResults);
-        const percentageDone = backtests.length / parametersMap.size;
-        console.log(`Backtested ${percentageDone * 100}%`);
+        const percentageRatio: number = backtests.length / parametersMap.size;
+        const percentageDone = parseFloat(percentageRatio.toFixed(2)) * 100;
+        console.log(`Backtested ${percentageDone}%`);
 
-        if (percentageDone === 1) {
+        if (percentageRatio === 1) {
           const parametersByScore = rankBestParameters(
             backtests,
             options.targets

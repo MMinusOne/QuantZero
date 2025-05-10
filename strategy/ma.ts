@@ -31,3 +31,7 @@ export default function strategy(
     return trade;
   }
 }
+
+// export const preload = (candles: OHLCV[], store: Map<string, any>) => {
+  
+// }

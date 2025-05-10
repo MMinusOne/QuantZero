@@ -45,13 +45,7 @@ const optimizedParameters = optimizer([
 ]);
 
 //@ts-ignore
-const data: OHLCV[] = await binance.fetchOHLCV(
-  "ETH/USDT",
-  "15m",
-  undefined,
-  300,
-  { paginate: true }
-);
+import data from "./data/ETH_USDT_15m.json";
 
 const maCrossOverPath = path.join(__dirname, "strategy", "ma.ts");
 
