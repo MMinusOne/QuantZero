@@ -63,12 +63,17 @@ async function backtest(
 
   for (const candleI in candles) {
     const candleIndex = Number(candleI);
+    const candle = candles.at(candleIndex);
     const candlesWindow = candles.toSpliced(candleIndex, candles.length);
     const trade = await strategy(candlesWindow, parameters, store);
 
     if (trade) {
       trades.push(trade);
       store.set("trades", trades);
+    }
+
+    for(const trade of trades) {
+      trade.update(candle!);
     }
   }
 
