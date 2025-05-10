@@ -39,7 +39,7 @@ parentPort?.on("message", async (data: BacktestingDataRequest) => {
   parentPort?.postMessage({
     backtestId,
     executionTime,
-    backtestResults,
+    ...backtestResults,
   });
 });
 
@@ -171,7 +171,7 @@ async function backtest(
     cumulativeReturns.push(cumulative);
   }
 
-  return {
+  const backtestResults = {
     winRate,
     profitFactor,
     sharpe,
@@ -182,5 +182,7 @@ async function backtest(
     trades: trades.length,
     avgReturn,
     stdDev,
+    parameterSet: parameters,
   };
+  return backtestResults;
 }
