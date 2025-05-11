@@ -1,3 +1,6 @@
+import type { Int } from "ccxt";
+import Trade from "./lib/Trade";
+
 export enum OptimizedParameterType {
   Numerical,
   Mode,
@@ -10,7 +13,7 @@ export enum OptimizationTarget {
   TotalPL,
   Alpha,
   Beta,
-  StdDev
+  StdDev,
 }
 
 export type NumericalParameterOptimizationType = {
@@ -59,6 +62,37 @@ export interface BestBacktestResults extends BacktestResults {
   backtestId: string;
   executionTime: number;
   score: number;
+}
+
+export interface TradeOptions {
+  entry: number;
+  side: "long" | "short";
+}
+
+export type Strategy = (
+  candles: OHLCV[],
+  parameters: Map<string, any>,
+  store: Map<string, any>
+) => Trade | null;
+
+export interface BacktestingDataRequest {
+  data: OHLCV[];
+  parameters: any;
+  threadNumber: number;
+  strategyPath: string;
+  options: {
+    fees: number;
+    slippage: number;
+  };
+}
+
+export interface DataInstallationRequest {
+  exchange: string;
+  pair: string;
+  timeframe: string;
+  limit: number;
+  since: Int,
+  threadNumber: number;
 }
 
 export enum ConcurrencyMode {

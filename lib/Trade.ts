@@ -1,9 +1,5 @@
 import type { OHLCV } from "ccxt";
-
-export interface TradeOptions {
-  entry: number;
-  side: "long" | "short";
-}
+import type { TradeOptions } from "../types";
 
 export default class Trade {
   public readonly entry: number;
