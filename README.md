@@ -66,5 +66,6 @@ This would make a combination of all these parameters (dimensions)
 ## Current Future Features / Todos
 
 - Built-in backtest and data visualization
-- Include fees and slippage
+- Include fees, slippage, rebates, and all other factors
 - Backtester working with more than OHLCV data
+- Re-check calculations of things
