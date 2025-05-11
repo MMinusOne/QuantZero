@@ -21,7 +21,7 @@ parentPort?.on(
       defaultType: "futures"
     });
     const data: OHLCV[] = [];
-
+  
     const recursiveDownload = async () => {
       const amount = Math.min(signleRequestLimit, Math.max(1, amountLeft));
       const ohlcvCandles = await exchange.fetchOHLCV(

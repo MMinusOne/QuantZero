@@ -69,3 +69,4 @@ This would make a combination of all these parameters (dimensions)
 - Include fees, slippage, rebates, and all other factors
 - Backtester working with more than OHLCV data
 - Re-check calculations of things
+- Fix multiple pairs download
