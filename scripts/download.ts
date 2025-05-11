@@ -10,12 +10,14 @@ import type { DataInstallationRequest } from "../types";
 const cpus = os.cpus();
 let exchange: Exchange;
 
+const pageSize = 20;
+
 const results = await inquirer.prompt([
   {
     name: "exchange",
     message: "Which exchange would you like to fetch data from?",
     type: "select",
-    pageSize: 100,
+    pageSize,
     choices: ccxt.exchanges.sort().filter((exchangeName: string) => {
       //@ts-ignore
       return new ccxt[exchangeName]().has["fetchOHLCV"];
@@ -27,7 +29,7 @@ const results = await inquirer.prompt([
     message: "Which pair would you like to install data for?",
     type: "checkbox",
     required: true,
-    pageSize: 100,
+    pageSize,
     choices: async (session) => {
       //@ts-ignore
       exchange = new ccxt[session.exchange]();
@@ -42,7 +44,7 @@ const results = await inquirer.prompt([
     name: "timeframe",
     message: "Which timeframe would you like?",
     type: "select",
-    pageSize: 100,
+    pageSize,
     choices: () => {
       return Object.keys(exchange.timeframes);
     },
@@ -156,7 +158,6 @@ const formattedPairs = Array.isArray(results.pair)
 const fileName = `${formattedPairs}_${results.timeframe}_${results.limit}.json`;
 const filePath = path.join(dataDir, fileName);
 
-console.log(dateWork)
 
 fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 console.log(`💾 Data saved to: ${filePath}`);
