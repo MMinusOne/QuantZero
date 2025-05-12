@@ -10,7 +10,7 @@ Quant Zero is an open-source backtesting framework made by `MMinusOne`, the purp
 
 - Quant Zero's multi-threaded implementation allows it to utilize all the CPU threads resulting in way quicker backtests
 
-- Quant Zero has is developer friendly and robust, allowing to make all kinds of strategies aslong as you have the data, all you need to do is implement the logic
+- Quant Zero is developer friendly and robust, allowing to make all kinds of strategies aslong as you have the data, all you need to do is implement the logic
 
 - Quant Zero is actively maintained by `MMinusOne`, and I offer support to whomever needs it, feel free to contact me
 
@@ -70,3 +70,4 @@ This would make a combination of all these parameters (dimensions)
 - Backtester working with more than OHLCV data
 - Re-check calculations of things
 - Fix multiple pairs download
+- Strategy ends with position liquidates due to -100% PnL

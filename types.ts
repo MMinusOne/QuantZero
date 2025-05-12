@@ -41,6 +41,7 @@ export interface BacktestOptions {
   initialCapital?: number;
   fees?: number;
   slippage?: number;
+  endOnTotalLiquidation?: boolean;
   targets: { [factor: string]: number };
 }
 
@@ -83,15 +84,16 @@ export interface BacktestingDataRequest {
   options: {
     fees: number;
     slippage: number;
+    endOnTotalLiquidation: number;
   };
 }
 
 export interface DataInstallationRequest {
   exchange: string;
-  pair: string;
+  pairs: string;
   timeframe: string;
   limit: number;
-  since: Int,
+  since: Int;
   threadNumber: number;
 }
 

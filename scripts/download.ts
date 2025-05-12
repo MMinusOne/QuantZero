@@ -25,7 +25,7 @@ const results = await inquirer.prompt([
     default: "binance",
   },
   {
-    name: "pair",
+    name: "pairs",
     message: "Which pair would you like to install data for?",
     type: "checkbox",
     required: true,
@@ -77,7 +77,7 @@ if (results.concurrency === "Full") {
 }
 
 const workers: Worker[] = [];
-let data: OHLCV[] = [];
+let data: { pair: string; data: OHLCV[] }[] = [];
 const workerPath = "./workers/dataDownloader.ts";
 
 const dateWork = splitDateWork(results.limit, concurrency, results.timeframe);
@@ -90,6 +90,7 @@ for (let i = 0; i < concurrency; i++) {
 let completedWorkers = 0;
 
 const loadingFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
 let loadingIndex = 0;
 const loadingInterval = setInterval(() => {
   process.stdout.write(
@@ -111,7 +112,7 @@ const workerPromises = workers.map((worker, workerIndex) => {
 
     const workerData: DataInstallationRequest = {
       exchange: results.exchange,
-      pair: results.pair,
+      pairs: results.pairs,
       timeframe: results.timeframe,
       limit: work.amount,
       since: work.since,
@@ -120,12 +121,24 @@ const workerPromises = workers.map((worker, workerIndex) => {
 
     worker.postMessage(workerData);
 
-    worker.on("message", (workerOHLCVData: OHLCV[]) => {
-      data.push(...workerOHLCVData);
-      worker.terminate();
-      completedWorkers++;
-      resolve();
-    });
+    worker.on(
+      "message",
+      (workerResponseData: { pair: string; data: OHLCV[] }[]) => {
+        for (const pairResponse of workerResponseData) {
+          const pairData = data.find((cell) => cell.pair === pairResponse.pair);
+
+          if (!pairData) {
+            data.push({ pair: pairResponse.pair, data: [] });
+          }
+
+          pairData?.data.push(...pairResponse.data);
+        }
+
+        worker.terminate();
+        completedWorkers++;
+        resolve();
+      }
+    );
 
     worker.on("error", (error) => {
       console.error(`Worker ${workerIndex} error:`, error);
@@ -144,20 +157,20 @@ process.stdout.write("\r\x1b[K");
 console.log("✅ Data fetching complete!");
 console.log(`📊 Total candles fetched: ${data.length}`);
 
-data = data.sort((a, b) => a[0]! - b[0]!);
+for (const pairData of data) {
+  const { pair, data } = pairData;
+  const sortedPairData = data.sort((a, b) => a[0]! - b[0]!);
 
-const dataDir = path.join(process.cwd(), "data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+  const dataDir = path.join(process.cwd(), "data");
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  const formattedPair = pair.replace(/\//g, "_");
+
+  const fileName = `${formattedPair}_${results.timeframe}_${results.limit}.json`;
+  const filePath = path.join(dataDir, fileName);
+
+  fs.writeFileSync(filePath, JSON.stringify(sortedPairData, null, 2));
+  console.log(`💾 Data saved to: ${filePath}`);
 }
-
-const formattedPairs = Array.isArray(results.pair)
-  ? results.pair.join("_").replace(/\//g, "_")
-  : results.pair.replace(/\//g, "_");
-
-const fileName = `${formattedPairs}_${results.timeframe}_${results.limit}.json`;
-const filePath = path.join(dataDir, fileName);
-
-
-fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-console.log(`💾 Data saved to: ${filePath}`);

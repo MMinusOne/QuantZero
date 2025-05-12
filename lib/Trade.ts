@@ -8,6 +8,7 @@ export default class Trade {
   public contracts: number = 1;
   public closed?: boolean = false;
   public pnl?: number;
+  public unrealizedPnL: number = 0;
   public leverage: number = 1;
   public tp?: number;
   public sl?: number;
@@ -39,15 +40,18 @@ export default class Trade {
 
   public update(candle: OHLCV) {
     if (this.closed) return this;
-    
+
     const [timestamp, open, high, low, close] = candle;
-    
+
     const currentPnl = this.calculatePnL(close!);
-    
+    this.unrealizedPnL = currentPnl;
+
     if (currentPnl <= -100) {
-      return this.close({ exit: this.side === "long" ? 0 : Number.MAX_SAFE_INTEGER });
+      return this.close({
+        exit: this.side === "long" ? 0 : Number.MAX_SAFE_INTEGER,
+      });
     }
-    
+
     if (this.sl !== undefined) {
       if (this.side === "long" && low! <= this.sl) {
         return this.close({ exit: this.sl });
@@ -55,7 +59,7 @@ export default class Trade {
         return this.close({ exit: this.sl });
       }
     }
-    
+
     if (this.tp !== undefined) {
       if (this.side === "long" && high! >= this.tp) {
         return this.close({ exit: this.tp });
@@ -63,15 +67,16 @@ export default class Trade {
         return this.close({ exit: this.tp });
       }
     }
-    
+
     return this;
   }
 
   private calculatePnL(currentPrice: number): number {
-    return (this.side === "long"
-      ? 100 * (currentPrice / this.entry) - 100
-      : 100 * (this.entry / currentPrice) - 100) *
-    this.leverage;
+    return (
+      (this.side === "long"
+        ? 100 * (currentPrice / this.entry) - 100
+        : 100 * (this.entry / currentPrice) - 100) * this.leverage
+    );
   }
 
   public close({ exit }: { exit: number }) {

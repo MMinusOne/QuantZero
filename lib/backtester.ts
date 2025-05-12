@@ -14,6 +14,8 @@ const cpus = os.cpus().length;
 const defaultOptions: BacktestOptions = {
   concurrency: ConcurrencyMode.Full,
   fees: 0,
+  slippage: 0,
+  endOnTotalLiquidation: false,
   targets: {
     [OptimizationTarget.Sharpe]: 40,
     [OptimizationTarget.WinRate]: 30,
@@ -130,31 +132,41 @@ interface ProgressTracker {
   completionTimes: number[];
 }
 
-function calculateETA(completed: number, total: number, tracker: ProgressTracker): string {
-  if (completed === 0) return 'calculating...';
-  
+function calculateETA(
+  completed: number,
+  total: number,
+  tracker: ProgressTracker
+): string {
+  if (completed === 0) return "calculating...";
+
   const now = Date.now();
   const elapsed = now - tracker.lastUpdate;
   tracker.lastUpdate = now;
-  
+
   if (completed > 1) {
     tracker.completionTimes.push(elapsed);
     if (tracker.completionTimes.length > 10) {
       tracker.completionTimes.shift();
     }
   }
-  
-  if (tracker.completionTimes.length === 0) return 'calculating...';
-  
-  const avgTime = tracker.completionTimes.reduce((a, b) => a + b, 0) / 
-                 tracker.completionTimes.length;
-  
+
+  if (tracker.completionTimes.length === 0) return "calculating...";
+
+  const avgTime =
+    tracker.completionTimes.reduce((a, b) => a + b, 0) /
+    tracker.completionTimes.length;
+
   const remaining = (total - completed) * avgTime;
-  
-  if (remaining < 1000) return 'finishing...';
+
+  if (remaining < 1000) return "finishing...";
   if (remaining < 60000) return `${Math.ceil(remaining / 1000)}s`;
-  if (remaining < 3600000) return `${Math.ceil(remaining / 60000)}m ${Math.ceil((remaining % 60000) / 1000)}s`;
-  return `${Math.floor(remaining / 3600000)}h ${Math.ceil((remaining % 3600000) / 60000)}m`;
+  if (remaining < 3600000)
+    return `${Math.ceil(remaining / 60000)}m ${Math.ceil(
+      (remaining % 60000) / 1000
+    )}s`;
+  return `${Math.floor(remaining / 3600000)}h ${Math.ceil(
+    (remaining % 3600000) / 60000
+  )}m`;
 }
 
 function rankBestParameters(

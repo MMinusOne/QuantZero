@@ -10,36 +10,44 @@ parentPort?.on(
     const {
       exchange: exchangeName,
       limit,
-      pair,
+      pairs,
       threadNumber,
       since,
       timeframe,
     } = dataInstallationRequestOptions;
-    let amountLeft = limit;
     //@ts-ignore
     const exchange: Exchange = new ccxt.pro[exchangeName]({
-      defaultType: "futures"
+      defaultType: "futures",
     });
-    const data: OHLCV[] = [];
-  
-    const recursiveDownload = async () => {
-      const amount = Math.min(signleRequestLimit, Math.max(1, amountLeft));
-      const ohlcvCandles = await exchange.fetchOHLCV(
-        `${pair}:USDT`,
-        timeframe,
-        since,
-        amount
-      );
-      data.push(...ohlcvCandles);
-      amountLeft -= amount;
+    let amountLeft = limit;
+    let workDone = 0;
+    const allPairData: { pair: string; data: OHLCV[] }[] = [];
 
-      if (amountLeft === 0) {
-        parentPort?.postMessage(data);
-      } else {
-        recursiveDownload();
-      }
-    };
+    for (const pair of pairs) {
+      const recursiveDownload = async () => {
+        const amount = Math.min(signleRequestLimit, Math.max(1, amountLeft));
+        const ohlcvCandles = await exchange.fetchOHLCV(
+          `${pair}:USDT`,
+          timeframe,
+          since,
+          amount
+        );
+        allPairData.push({ pair, data: ohlcvCandles });
+        amountLeft -= amount;
 
-    recursiveDownload();
+        if (amountLeft === 0) {
+          workDone += 1;
+          console.log(workDone);
+          if (workDone === pairs.length) {
+            parentPort?.postMessage(allPairData);
+          }
+          return;
+        } else {
+          recursiveDownload();
+        }
+      };
+
+      recursiveDownload();
+    }
   }
 );

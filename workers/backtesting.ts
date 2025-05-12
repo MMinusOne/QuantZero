@@ -55,8 +55,9 @@ async function backtest(
       store.set("trades", trades);
     }
 
-    for(const trade of trades) {
+    for (const trade of trades) {
       trade.update(candle!);
+      // TODO: add unrealized PNL check if trade hits total liquidation
     }
   }
 

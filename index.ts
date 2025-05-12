@@ -39,21 +39,21 @@ const optimizedParameters = optimizer([
   {
     name: "period",
     start: 10,
-    end: 100,
+    end: 200,
     step: 1,
     type: OptimizedParameterType.Numerical,
   },
 ]);
 //@ts-ignore
-import data from "./data/ETH_USDT_15m_10000.json";
+import data from "./data/BNB_USDT_15m_10000.json";
 
-const maCrossOverPath = path.join(__dirname, "strategy", "ma.ts");
+const maStrategy = path.join(__dirname, "strategy", "ma.ts");
 
 const backtestGroupId = uuidv4();
 
 const backtestResults = await backtest(
-  data,
-  maCrossOverPath,
+  data!,
+  maStrategy,
   optimizedParameters,
   {
     concurrency: ConcurrencyMode.Full,
@@ -65,6 +65,7 @@ const backtestResults = await backtest(
   }
 );
 
+console.log(backtestResults.at(0))
 
 const backtestGroupPath = `./backtests/${backtestGroupId}`;
 
