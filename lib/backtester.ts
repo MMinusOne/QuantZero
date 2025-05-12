@@ -86,7 +86,7 @@ export default function backtest(
         backtests.push(backtestResults);
         const percentageRatio: number = backtests.length / parametersMap.size;
         const percentageDone = parseFloat(percentageRatio.toFixed(2)) * 100;
-        console.log(`Backtested ${percentageDone}%`);
+        console.log(`Backtested ${percentageDone}%, ${backtests.length}/${parametersMap.size}`);
 
         if (percentageRatio === 1) {
           const parametersByScore = rankBestParameters(

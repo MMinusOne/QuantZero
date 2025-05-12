@@ -9,6 +9,7 @@ export default function strategy(
 ) {
   const closes = candles.map((candle) => candle[4]);
   const maPeriod = parameters.get("period");
+  const leverage = parameters.get("leverage");
   const ma = sma({ values: closes, period: maPeriod }).at(-1);
   const latestClose: number = closes.at(-1)!;
   const latestTrade: Trade | null = store.get("trades")?.at(-1);
@@ -21,13 +22,13 @@ export default function strategy(
       latestTrade?.close({ exit: latestClose });
       const trade = new Trade({ entry: latestClose, side })
         .setContracts(1)
-        .setLeverage(5);
+        .setLeverage(leverage);
       return trade;
     }
   } else {
     const trade = new Trade({ entry: latestClose, side })
       .setContracts(1)
-      .setLeverage(5);
+      .setLeverage(leverage);
     return trade;
   }
 }

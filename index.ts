@@ -39,11 +39,20 @@ const optimizedParameters = optimizer([
   {
     name: "period",
     start: 10,
-    end: 100,
-    step: 5,
+    end: 200,
+    step: 10,
+    type: OptimizedParameterType.Numerical,
+  },
+  {
+    name: "leverage",
+    start: 1,
+    end: 125,
+    step: 3,
     type: OptimizedParameterType.Numerical,
   },
 ]);
+
+console.log(`Optimizing for ${optimizedParameters.length} parameters`);
 
 //@ts-ignore
 import data from "./data/SOL_USDT_15m.json";
@@ -70,6 +79,9 @@ const backtestGroupPath = `./backtests/${backtestGroupId}`;
 
 fs.mkdirSync(backtestGroupPath);
 
-for(const backtestResult of backtestResults) { 
-  fs.writeFileSync(`./${backtestGroupPath}/${backtestResult.backtestId}.json`, JSON.stringify(backtestResult))
+for (const backtestResult of backtestResults) {
+  fs.writeFileSync(
+    `./${backtestGroupPath}/${backtestResult.backtestId}.json`,
+    JSON.stringify(backtestResult)
+  );
 }
