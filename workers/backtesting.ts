@@ -1,25 +1,8 @@
 import { parentPort } from "node:worker_threads";
-import type { OHLCV } from "../types";
+import type { BacktestingDataRequest, OHLCV, Strategy } from "../types";
 import type Trade from "../lib/Trade";
 import { v4 as uuidv4 } from "uuid";
 import { performance } from "perf_hooks";
-
-type Strategy = (
-  candles: OHLCV[],
-  parameters: Map<string, any>,
-  store: Map<string, any>
-) => Trade | null;
-
-interface BacktestingDataRequest {
-  data: OHLCV[];
-  parameters: any;
-  threadNumber: number;
-  strategyPath: string;
-  options: {
-    fees: number;
-    slippage: number;
-  };
-}
 
 parentPort?.on("message", async (data: BacktestingDataRequest) => {
   const backtestId = uuidv4();
@@ -72,8 +55,9 @@ async function backtest(
       store.set("trades", trades);
     }
 
-    for(const trade of trades) {
+    for (const trade of trades) {
       trade.update(candle!);
+      // TODO: add unrealized PNL check if trade hits total liquidation
     }
   }
 

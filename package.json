@@ -9,9 +9,15 @@
   "peerDependencies": {
     "typescript": "^5"
   },
+  "scripts": {
+    "download": "bun scripts/download.ts"
+  },
   "dependencies": {
+    "@types/ms": "^2.1.0",
     "@types/node": "^22.15.17",
     "ccxt": "^4.4.78",
+    "inquirer": "^12.6.1",
+    "ms": "^2.1.3",
     "technicalindicators": "^3.1.0",
     "uuid": "^11.1.0"
   }

@@ -84,4 +84,9 @@ for (const backtestResult of backtestResults) {
     `./${backtestGroupPath}/${backtestResult.backtestId}.json`,
     JSON.stringify(backtestResult)
   );
+for (const backtestResult of backtestResults) {
+  fs.writeFileSync(
+    `./${backtestGroupPath}/${backtestResult.backtestId}.json`,
+    JSON.stringify(backtestResult)
+  );
 }
