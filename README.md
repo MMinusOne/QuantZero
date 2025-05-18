@@ -71,3 +71,4 @@ This would make a combination of all these parameters (dimensions)
 - Re-check calculations of things
 - Fix multiple pairs download
 - Strategy ends with position liquidates due to -100% PnL
+- Ratio between strategy / buy-and-hold performance indicator

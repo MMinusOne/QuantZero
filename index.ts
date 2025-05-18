@@ -10,6 +10,11 @@ import {
 import path from "path";
 import ccxt from "ccxt";
 import { v4 as uuidv4 } from "uuid";
+import calculateDateFromTimeframeAndAmount, {
+  calculateCandles,
+} from "./utils/calculateDateFromTimeframeAndAmount";
+import ms from "ms";
+import { download } from "./scripts/download";
 
 // const binance = new ccxt.pro.binance();
 
@@ -35,58 +40,120 @@ import { v4 as uuidv4 } from "uuid";
 //   },
 // ]);
 
-const optimizedParameters = optimizer([
+const optimizedParameters = optimizer(
+  [
+    // {
+    //   name: "fastPeriod",
+    //   start: 1,
+    //   end: 150,
+    //   step: 10,
+    //   type: OptimizedParameterType.Numerical,
+    // },
+    // {
+    //   name: "slowPeriod",
+    //   start: 1,
+    //   end: 200,
+    //   step: 10,
+    //   type: OptimizedParameterType.Numerical,
+    // },
+    {
+      name: "period",
+      start: 1,
+      end: 50,
+      step: 20,
+      type: OptimizedParameterType.Numerical,
+    },
+    {
+      name: "lowThreshold",
+      start: 10,
+      end: 40,
+      step: 10,
+      type: OptimizedParameterType.Numerical,
+    },
+    {
+      name: "highThreshold",
+      start: 60,
+      end: 90,
+      step: 10,
+      type: OptimizedParameterType.Numerical,
+    },
+  ]
+);
+// todo: mean reversion, dynamic ma mean reversion, trend following & mean reversion combination
+// explain ADF, CADF, C = Aa + Bb + Cc + Dd for making assets whose properties are more favorable
+// explain spread, stationary assets
+// TODO: graph RSI, see whats wrong with returns
+console.log(optimizedParameters.length)
+const assets = [
+  // {
+  //   pair: "BNB/USDT",
+  //   path: "./data/BNB_USDT_4h_30000.json",
+  // },
+  // {
+  //   pair: "BTC/USDT",
+  //   path: "./data/BTC_USDT_4h_30000.json",
+  // },
+  // {
+  //   pair: "ETH/USDT",
+  //   path: "./data/ETH_USDT_4h_30000.json",
+  // },
   {
-    name: "period",
-    start: 10,
-    end: 200,
-    step: 10,
-    type: OptimizedParameterType.Numerical,
+    pair: "SOL/USDT",
+    path: "./data/SOL_USDT_1h_120000.json",
   },
-  {
-    name: "leverage",
-    start: 1,
-    end: 125,
-    step: 3,
-    type: OptimizedParameterType.Numerical,
-  },
-]);
-
-console.log(`Optimizing for ${optimizedParameters.length} parameters`);
-
+  // {
+  //   pair: "LTC/USDT",
+  //   path: "./data/LTC_USDT_4h_30000.json",
+  // },
+  // {
+  //   pair: "LINK/USDT",
+  //   path: "./data/LINK_USDT_4h_30000.json",
+  // },
+  // {
+  //   pair: "ATOM/USDT",
+  //   path: "./data/ATOM_USDT_4h_30000.json",
+  // },
+  // {
+  //   pair: "AUDIO/USDT",
+  //   path: "./data/AUDIO_USDT_4h_30000.json",
+  // },
+  // {
+  //   pair: "ALGO/USDT",
+  //   path: "./data/ALGO_USDT_4h_30000.json",
+  // },
+  // {
+  //   pair: "SUSHI/USDT",
+  //   path: "./data/SUSHI_USDT_1h_19987.json",
+  // },
+];
 //@ts-ignore
-import data from "./data/SOL_USDT_15m.json";
 
-const maCrossOverPath = path.join(__dirname, "strategy", "ma.ts");
+const strat = path.join(__dirname, "strategy", "rsi.ts");
 
-const backtestGroupId = uuidv4();
-
-const backtestResults = await backtest(
-  data,
-  maCrossOverPath,
-  optimizedParameters,
-  {
+const backtestingPromises = assets.map(async (asset) => {
+  const backtestGroupId = uuidv4();
+  const { default: data } = await import(asset.path, {
+    with: { type: "json" },
+  });
+  const backtestResults = await backtest(data, strat, optimizedParameters, {
+    asset: asset.pair,
     concurrency: ConcurrencyMode.Full,
     targets: {
       [OptimizationTarget.Sharpe]: 100,
       // [OptimizationTarget.WinRate]: 30,
       // [OptimizationTarget.ProfitFactor]: 30,
     },
+  });
+  const backtestGroupPath = `./backtests/${backtestGroupId}`;
+
+  fs.mkdirSync(backtestGroupPath);
+
+  for (const backtestResult of backtestResults) {
+    fs.writeFileSync(
+      `./${backtestGroupPath}/${backtestResult.backtestId}.json`,
+      JSON.stringify(backtestResult)
+    );
   }
-);
+});
 
-const backtestGroupPath = `./backtests/${backtestGroupId}`;
-
-fs.mkdirSync(backtestGroupPath);
-
-for (const backtestResult of backtestResults) {
-  fs.writeFileSync(
-    `./${backtestGroupPath}/${backtestResult.backtestId}.json`,
-    JSON.stringify(backtestResult)
-  );
-for (const backtestResult of backtestResults) {
-  fs.writeFileSync(
-    `./${backtestGroupPath}/${backtestResult.backtestId}.json`,
-    JSON.stringify(backtestResult)
-  );
-}
+await Promise.all(backtestingPromises);

@@ -3,15 +3,33 @@ import type { BacktestingDataRequest, OHLCV, Strategy } from "../types";
 import type Trade from "../lib/Trade";
 import { v4 as uuidv4 } from "uuid";
 import { performance } from "perf_hooks";
+import {
+  calculateAlpha,
+  calculateBeta,
+  calculateCumulativeReturns,
+  calculateMean,
+  calculateProfitFactor,
+  calculateSharpeRatio,
+  calculateStandardDeviation,
+  calculateWinRate,
+} from "../utils/performanceCalculations";
+
+let strategy: Strategy;
 
 parentPort?.on("message", async (data: BacktestingDataRequest) => {
   const backtestId = uuidv4();
   const startTime = performance.now();
   //@ts-ignore
-  const { default: strategy } = (await import(data.strategyPath)) as Strategy;
+  if (!strategy) {
+    const { default: strategyFn } = (await import(data.strategyPath)) as {
+      default: Strategy;
+    };
+    strategy = strategyFn;
+  }
   const parametersMap = createMapFromParameters(data.parameters);
   const store: Map<string, any> = new Map();
   const backtestResults = await backtest(
+    data.asset,
     data.data,
     strategy,
     parametersMap,
@@ -37,6 +55,7 @@ function createMapFromParameters(parameters: any): Map<string, any> {
 }
 
 async function backtest(
+  asset: string,
   candles: OHLCV[],
   strategy: Strategy,
   parameters: Map<string, any>,
@@ -100,67 +119,34 @@ async function backtest(
     }
   }
 
-  const winRate = trades.length > 0 ? winCount / trades.length : 0;
+  const winRate = calculateWinRate(winCount, trades.length);
+  const profitFactor = calculateProfitFactor(grossProfit, grossLoss);
 
-  const profitFactor =
-    grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
+  const avgReturn = calculateMean(returnsArray);
+  const stdDev = calculateStandardDeviation(returnsArray, avgReturn);
+  const sharpe = calculateSharpeRatio(avgReturn, stdDev, riskFreeRate);
 
-  const avgReturn =
-    returnsArray.length > 0
-      ? returnsArray.reduce((sum, ret) => sum + ret, 0) / returnsArray.length
-      : 0;
-
-  const stdDev =
-    returnsArray.length > 1
-      ? Math.sqrt(
-          returnsArray.reduce(
-            (sum, ret) => sum + Math.pow(ret - avgReturn, 2),
-            0
-          ) /
-            (returnsArray.length - 1)
-        )
-      : 1;
-
-  const sharpe =
-    stdDev > 0
-      ? ((avgReturn - riskFreeRate) / stdDev) * Math.sqrt(252) // Annualized
-      : 0;
-
-  let beta = 0;
-  if (marketReturns.length === returnsArray.length && returnsArray.length > 1) {
-    const marketAvg =
-      marketReturns.reduce((sum, ret) => sum + ret, 0) / marketReturns.length;
-    const covariance =
-      returnsArray.reduce(
-        (sum, ret, i) =>
-          sum + (ret - avgReturn) * (marketReturns[i]! - marketAvg),
-        0
-      ) /
-      (returnsArray.length - 1);
-
-    const marketVariance =
-      marketReturns.reduce(
-        (sum, ret) => sum + Math.pow(ret - marketAvg, 2),
-        0
-      ) /
-      (marketReturns.length - 1);
-
-    beta = marketVariance > 0 ? covariance / marketVariance : 0;
-  }
+  const marketMean = calculateMean(marketReturns);
+  const beta = calculateBeta(
+    returnsArray,
+    marketReturns,
+    avgReturn,
+    marketMean
+  );
 
   const marketTotalReturn = marketReturns.reduce((sum, ret) => sum + ret, 0);
-  const alpha =
-    totalReturns -
-    (riskFreeRate * returnsArray.length + beta * marketTotalReturn);
+  const alpha = calculateAlpha(
+    totalReturns,
+    riskFreeRate,
+    returnsArray.length,
+    beta,
+    marketTotalReturn
+  );
 
-  const cumulativeReturns = [];
-  let cumulative = 0;
-  for (const ret of returnsArray) {
-    cumulative += ret;
-    cumulativeReturns.push(cumulative);
-  }
+  const cumulativeReturns = calculateCumulativeReturns(returnsArray);
 
   const backtestResults = {
+    asset: asset,
     winRate,
     profitFactor,
     sharpe,

@@ -1,14 +1,13 @@
-import { Worker } from "worker_threads";
-import ccxt, { type Exchange, type OHLCV } from "ccxt";
+import ccxt, { type Exchange, type Int, type OHLCV } from "ccxt";
 import inquirer from "inquirer";
 import os from "os";
 import fs from "fs";
 import path from "path";
-import splitDateWork from "../utils/splitDateWork";
-import type { DataInstallationRequest } from "../types";
+import calculateDateFromTimeframeAndAmount from "../utils/calculateDateFromTimeframeAndAmount";
+import ms from "ms";
 
 const cpus = os.cpus();
-let exchange: Exchange;
+let exchange: Exchange = new ccxt.pro.binance();
 
 const pageSize = 20;
 
@@ -61,116 +60,87 @@ const results = await inquirer.prompt([
       return true;
     },
   },
-  {
-    name: "concurrency",
-    message: "Should we use concurrency to fetch the data?",
-    type: "select",
-    choices: ["None", "Medium", "Full"],
-  },
 ]);
 
-let concurrency = 1;
-if (results.concurrency === "Full") {
-  concurrency = Math.max(1, cpus.length);
-} else if (results.concurrency === "Medium") {
-  concurrency = Math.max(1, Math.ceil(cpus.length / 2));
-}
+export async function download(options: typeof results) {
+  let data: { pair: string; data: OHLCV[]; latestTime: Int }[] = [];
 
-const workers: Worker[] = [];
-let data: { pair: string; data: OHLCV[] }[] = [];
-const workerPath = "./workers/dataDownloader.ts";
+  const loadingFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-const dateWork = splitDateWork(results.limit, concurrency, results.timeframe);
+  let loadingIndex = 0;
+  let dataDone = 0;
+  const allAmountOfCandles = options.pairs.length * options.limit;
+  const loadingInterval = setInterval(() => {
+    const dataDoneRatio = dataDone / allAmountOfCandles;
+    process.stdout.write(
+      `\r${
+        loadingFrames[loadingIndex]
+      } Fetching data... ${dataDone}/${allAmountOfCandles}(${
+        dataDoneRatio.toFixed(1) * 100
+      }%) candles completed`
+    );
+    loadingIndex = (loadingIndex + 1) % loadingFrames.length;
+  }, 100);
 
-for (let i = 0; i < concurrency; i++) {
-  const worker = new Worker(workerPath);
-  workers.push(worker);
-}
+  const BATCH_SIZE = 1_000;
 
-let completedWorkers = 0;
-
-const loadingFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-let loadingIndex = 0;
-const loadingInterval = setInterval(() => {
-  process.stdout.write(
-    `\r${loadingFrames[loadingIndex]} Fetching data... ${completedWorkers}/${concurrency} workers completed`
+  const downloadPromises: Promise<OHLCV[]>[] = options.pairs.map(
+    async (pair: string) => {
+      while (true) {
+        let pairData = data.find((pairCell) => pairCell.pair === pair);
+        if (!pairData) {
+          const startDate = calculateDateFromTimeframeAndAmount(
+            //@ts-ignore
+            ms(options.timeframe),
+            options.limit
+          );
+          console.log(startDate);
+          pairData = {
+            data: [],
+            latestTime: new Date(startDate).getTime(),
+            pair,
+          };
+          data.push(pairData); 
+        }
+        const candles = await exchange.fetchOHLCV(
+          pair,
+          options.timeframe,
+          pairData?.latestTime,
+          BATCH_SIZE
+        );
+        pairData.data.push(...candles);
+        pairData.latestTime = candles.at(-1)!.at(0);
+        if (candles.length !== BATCH_SIZE) break;
+        dataDone += candles.length;
+      }
+    }
   );
-  loadingIndex = (loadingIndex + 1) % loadingFrames.length;
-}, 100);
 
-const workerPromises = workers.map((worker, workerIndex) => {
-  return new Promise<void>((resolve) => {
-    const work = dateWork[workerIndex];
+  await Promise.all(downloadPromises);
 
-    if (!work) {
-      worker.terminate();
-      completedWorkers++;
-      resolve();
-      return;
+  clearInterval(loadingInterval);
+  process.stdout.write("\r\x1b[K");
+
+  console.log("✅ Data fetching complete!");
+  console.log(`📊 Total candles fetched: ${data.length}`);
+
+  for (const pairData of data) {
+    const { pair, data } = pairData;
+    const sortedPairData = data.sort((a, b) => a[0]! - b[0]!);
+
+    const dataDir = path.join(process.cwd(), "data");
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    const workerData: DataInstallationRequest = {
-      exchange: results.exchange,
-      pairs: results.pairs,
-      timeframe: results.timeframe,
-      limit: work.amount,
-      since: work.since,
-      threadNumber: workerIndex,
-    };
+    const formattedPair = pair.replace(/\//g, "_");
 
-    worker.postMessage(workerData);
+    const fileName = `${formattedPair}_${options.timeframe}_${options.limit}.json`;
+    const filePath = path.join(dataDir, fileName);
 
-    worker.on(
-      "message",
-      (workerResponseData: { pair: string; data: OHLCV[] }[]) => {
-        for (const pairResponse of workerResponseData) {
-          const pairData = data.find((cell) => cell.pair === pairResponse.pair);
-
-          if (!pairData) {
-            data.push({ pair: pairResponse.pair, data: [] });
-          }
-
-          pairData?.data.push(...pairResponse.data);
-        }
-
-        worker.terminate();
-        completedWorkers++;
-        resolve();
-      }
-    );
-
-    worker.on("error", (error) => {
-      console.error(`Worker ${workerIndex} error:`, error);
-      worker.terminate();
-      completedWorkers++;
-      resolve();
-    });
-  });
-});
-
-await Promise.all(workerPromises);
-
-clearInterval(loadingInterval);
-process.stdout.write("\r\x1b[K");
-
-console.log("✅ Data fetching complete!");
-console.log(`📊 Total candles fetched: ${data.length}`);
-
-for (const pairData of data) {
-  const { pair, data } = pairData;
-  const sortedPairData = data.sort((a, b) => a[0]! - b[0]!);
-
-  const dataDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(sortedPairData, null, 2));
+    console.log(`💾 Data saved to: ${filePath}`);
   }
-
-  const formattedPair = pair.replace(/\//g, "_");
-
-  const fileName = `${formattedPair}_${results.timeframe}_${results.limit}.json`;
-  const filePath = path.join(dataDir, fileName);
-
-  fs.writeFileSync(filePath, JSON.stringify(sortedPairData, null, 2));
-  console.log(`💾 Data saved to: ${filePath}`);
 }
+
+await download(results);

@@ -37,6 +37,7 @@ export type ParameterOptimizationType =
 export type OHLCV = [number, number, number, number, number, number];
 
 export interface BacktestOptions {
+  asset?: string;
   concurrency?: ConcurrencyMode;
   initialCapital?: number;
   fees?: number;
@@ -46,6 +47,7 @@ export interface BacktestOptions {
 }
 
 export interface BacktestResults {
+  asset?: string;
   backtestId: string;
   executionTime: number;
   winRate: number;
@@ -56,7 +58,7 @@ export interface BacktestResults {
   totalReturns: number;
   cumulativeReturns: number[];
   stdDev: number;
-  parameterSet: Map<string, any>;
+  parameterSet: Map<string, any> | any;
 }
 
 export interface BestBacktestResults extends BacktestResults {
@@ -77,6 +79,7 @@ export type Strategy = (
 ) => Trade | null;
 
 export interface BacktestingDataRequest {
+  asset: string;
   data: OHLCV[];
   parameters: any;
   threadNumber: number;

@@ -80,6 +80,7 @@ export default function backtest(
       if (!workers.at(currentWorker)) currentWorker = 0;
       const worker = workers.at(currentWorker);
       worker?.postMessage({
+        asset: options.asset,
         data,
         parameters: value,
         threadNumber: currentWorker,
@@ -118,6 +119,11 @@ export default function backtest(
             backtests,
             options.targets
           );
+          for (const bestParamBacktest of parametersByScore) {
+            bestParamBacktest.parameterSet = Object.fromEntries(
+              bestParamBacktest.parameterSet
+            );
+          }
           resolve(parametersByScore);
           cleanupWorkers(workers);
         }

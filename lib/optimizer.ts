@@ -6,6 +6,7 @@ import {
 
 export default function optimizer(
   parameters: ParameterOptimizationType[],
+  rules?: (parameters: any) => boolean
 ) {
   let combinations: any[] = [{}];
   const compiledParameters: { name: string; values: any[] }[] = [];
@@ -46,5 +47,6 @@ export default function optimizer(
     combinations = newCombinations;
   });
 
+  if (rules) combinations = combinations.filter((combo) => rules(combo));
   return combinations;
 }
