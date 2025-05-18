@@ -19,6 +19,25 @@ export default class Trade {
 
   constructor(options?: TradeOptions) {}
 
+  public getProperties() {
+    return {
+      entry: this.entry,
+      exit: this.exit,
+      entryDate: this.entryDate,
+      exitDate: this.exitDate,
+      side: this.side,
+      contracts: this.contracts,
+      closed: this.closed,
+      pnl: this.pnl,
+      unrealizedPnL: this.unrealizedPnL,
+      leverage: this.leverage,
+      tp: this.tp,
+      sl: this.sl,
+      currentCandle: this.currentCandle,
+      liquidated: this.liquidated,
+    };
+  }
+
   public setSide(side: "long" | "short") {
     this.side = side;
     return this;
@@ -90,8 +109,8 @@ export default class Trade {
   public close() {
     this.closed = true;
     if (!this.exit && this.currentCandle) {
-      const close = this.currentCandle[0]!;
-      this.exit = this.currentCandle[0]!;
+      const close = this.currentCandle[4]!;
+      this.exit = close;
       if (this.tp) {
         if (this.tp <= close) {
           this.exit = this.tp;

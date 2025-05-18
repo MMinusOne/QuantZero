@@ -93,6 +93,7 @@ export default function backtest(
     for (const worker of workers) {
       worker.on("message", (backtestResults: BacktestResults) => {
         backtests.push(backtestResults);
+
         const percentageRatio: number = backtests.length / parametersMap.size;
         const percentageDone = Math.floor(percentageRatio * 100);
 

@@ -22,14 +22,14 @@ export default function strategy(
 
   if (latestTrade) {
     if (latestTrade.side !== side && !latestTrade.closed) {
-      latestTrade?.close({ exit: latestClose });
-      const trade = new Trade({ entry: latestClose, side })
+      latestTrade?.close();
+      const trade = new Trade()
         .setContracts(1)
         .setLeverage(1);
       return trade;
     }
   } else {
-    const trade = new Trade({ entry: latestClose, side })
+    const trade = new Trade()
       .setContracts(1)
       .setLeverage(1);
     return trade;

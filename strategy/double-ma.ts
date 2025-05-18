@@ -11,7 +11,9 @@ export default function strategy(
 ) {
   const slowPeriod = parameters.get("slowPeriod");
   const fastPeriod = parameters.get("fastPeriod");
-  const closes = candles.slice(-slowPeriod - OVER_HEAD).map((candle) => candle[4]);
+  const closes = candles
+    .slice(-slowPeriod - OVER_HEAD)
+    .map((candle) => candle[4]);
   const slowMa = sma({ period: slowPeriod, values: closes }).at(-1);
   const fastMa = sma({ period: fastPeriod, values: closes }).at(-1);
 
@@ -24,16 +26,12 @@ export default function strategy(
 
   if (latestTrade) {
     if (latestTrade.side !== side && !latestTrade.closed) {
-      latestTrade?.close({ exit: latestClose });
-      const trade = new Trade({ entry: latestClose, side })
-        .setContracts(1)
-        .setLeverage(1);
+      latestTrade?.close();
+      const trade = new Trade().setSide(side).setContracts(1).setLeverage(1);
       return trade;
     }
   } else {
-    const trade = new Trade({ entry: latestClose, side })
-      .setContracts(1)
-      .setLeverage(1);
+    const trade = new Trade().setSide(side).setContracts(1).setLeverage(1);
     return trade;
   }
 }

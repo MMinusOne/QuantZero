@@ -59,6 +59,8 @@ export interface BacktestResults {
   cumulativeReturns: number[];
   stdDev: number;
   parameterSet: Map<string, any> | any;
+  trades: any[];
+  tradeCount: number;
 }
 
 export interface BestBacktestResults extends BacktestResults {
