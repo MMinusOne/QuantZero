@@ -2,9 +2,11 @@ import type { OHLCV } from "ccxt";
 import type { TradeOptions } from "../types";
 
 export default class Trade {
-  public readonly entry: number;
+  public entry?: number;
   public exit?: number;
-  public readonly side: "long" | "short";
+  public entryDate?: number;
+  public exitDate?: number;
+  public side?: "long" | "short";
   public contracts: number = 1;
   public closed?: boolean = false;
   public pnl?: number;
@@ -12,10 +14,14 @@ export default class Trade {
   public leverage: number = 1;
   public tp?: number;
   public sl?: number;
+  private currentCandle?: OHLCV;
+  private liquidated: boolean = false;
 
-  constructor(options: TradeOptions) {
-    this.entry = options.entry;
-    this.side = options.side;
+  constructor(options?: TradeOptions) {}
+
+  public setSide(side: "long" | "short") {
+    this.side = side;
+    return this;
   }
 
   public setLeverage(leverage: number = 1) {
@@ -40,6 +46,9 @@ export default class Trade {
 
   public update(candle: OHLCV) {
     if (this.closed) return this;
+    this.currentCandle = candle;
+    if (!this.entry) this.entry = candle[4]!;
+    if (!this.entryDate) this.entryDate = candle[0];
 
     const [timestamp, open, high, low, close] = candle;
 
@@ -47,24 +56,23 @@ export default class Trade {
     this.unrealizedPnL = currentPnl;
 
     if (currentPnl <= -100) {
-      return this.close({
-        exit: this.side === "long" ? 0 : Number.MAX_SAFE_INTEGER,
-      });
+      this.liquidated = true;
+      return this.close();
     }
 
     if (this.sl !== undefined) {
       if (this.side === "long" && low! <= this.sl) {
-        return this.close({ exit: this.sl });
+        return this.close();
       } else if (this.side === "short" && high! >= this.sl) {
-        return this.close({ exit: this.sl });
+        return this.close();
       }
     }
 
     if (this.tp !== undefined) {
       if (this.side === "long" && high! >= this.tp) {
-        return this.close({ exit: this.tp });
+        return this.close();
       } else if (this.side === "short" && low! <= this.tp) {
-        return this.close({ exit: this.tp });
+        return this.close();
       }
     }
 
@@ -74,18 +82,32 @@ export default class Trade {
   private calculatePnL(currentPrice: number): number {
     return (
       (this.side === "long"
-        ? 100 * (currentPrice / this.entry) - 100
-        : 100 * (this.entry / currentPrice) - 100) * this.leverage
+        ? 100 * (currentPrice / this.entry!) - 100
+        : 100 * (this.entry! / currentPrice) - 100) * this.leverage
     );
   }
 
-  public close({ exit }: { exit: number }) {
+  public close() {
     this.closed = true;
-    this.exit = exit;
+    if (!this.exit && this.currentCandle) {
+      const close = this.currentCandle[0]!;
+      this.exit = this.currentCandle[0]!;
+      if (this.tp) {
+        if (this.tp <= close) {
+          this.exit = this.tp;
+        }
+      } else if (this.sl) {
+        if (this.sl >= close) {
+          this.exit = this.sl;
+        }
+      }
+    }
+    if (!this.exitDate && this.currentCandle)
+      this.exitDate = this.currentCandle[0]!;
     this.pnl =
       (this.side === "long"
-        ? 100 * (this.exit / this.entry) - 100
-        : 100 * (this.entry / this.exit) - 100) *
+        ? 100 * (this.exit! / this.entry!) - 100
+        : 100 * (this.entry! / this.exit!) - 100) *
       this.leverage *
       this.contracts;
     return this;
