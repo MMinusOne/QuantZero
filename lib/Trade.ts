@@ -66,10 +66,10 @@ export default class Trade {
   public update(candle: OHLCV) {
     if (this.closed) return this;
     this.currentCandle = candle;
-    if (!this.entry) this.entry = candle[4]!;
-    if (!this.entryDate) this.entryDate = candle[0];
+    if (!this.entry) this.entry = this.currentCandle[4]!;
+    if (!this.entryDate) this.entryDate = this.currentCandle[0];
 
-    const [timestamp, open, high, low, close] = candle;
+    const [timestamp, open, high, low, close] = this.currentCandle;
 
     const currentPnl = this.calculatePnL(close!);
     this.unrealizedPnL = currentPnl;
@@ -102,7 +102,7 @@ export default class Trade {
     return (
       (this.side === "long"
         ? 100 * (currentPrice / this.entry!) - 100
-        : 100 * (this.entry! / currentPrice) - 100) * this.leverage
+        : 100 - 100 * (this.entry! / currentPrice)) * this.leverage
     );
   }
 
