@@ -61,6 +61,7 @@ export interface BacktestResults {
   parameterSet: Map<string, any> | any;
   trades: any[];
   tradeCount: number;
+  dataStartDate: number;
 }
 
 export interface BestBacktestResults extends BacktestResults {
@@ -78,7 +79,7 @@ export type Strategy = (
   candles: OHLCV[],
   parameters: Map<string, any>,
   store: Map<string, any>
-) => Trade | null;
+) => Trade | Trade[] | null;
 
 export interface BacktestingDataRequest {
   asset: string;

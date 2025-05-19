@@ -40,6 +40,7 @@ parentPort?.on("message", async (data: BacktestingDataRequest) => {
   parentPort?.postMessage({
     backtestId,
     executionTime,
+    dataStartDate: data.data.at(0)![0],
     ...backtestResults,
   });
 });
@@ -67,11 +68,19 @@ async function backtest(
     const candleIndex = Number(candleI);
     const candle = candles.at(candleIndex);
     const candlesWindow = candles.toSpliced(candleIndex, candles.length);
-    const trade = await strategy(candlesWindow, parameters, store);
+    let responseTrades: Trade | Trade[] | null = await strategy(
+      candlesWindow,
+      parameters,
+      store
+    );
 
-    if (trade) {
-      trades.push(trade);
-      store.set("trades", trades);
+    if (responseTrades) {
+      if (!Array.isArray(responseTrades)) responseTrades = [responseTrades];
+
+      if (responseTrades && responseTrades?.length > 0) {
+        trades.push(...responseTrades);
+        store.set("trades", trades);
+      }
     }
 
     for (const trade of trades) {
@@ -108,11 +117,13 @@ async function backtest(
     const tradeIndex = candles.findIndex(
       (candle) => candle[0] === (trade.exit ? trade.exit : trade.entry)
     );
+
     if (tradeIndex > 0 && tradeIndex < candles.length - 1) {
       const marketReturn =
         ((candles[tradeIndex + 1]![4] - candles[tradeIndex]![4]) /
           candles[tradeIndex]![4]) *
         100;
+
       marketReturns.push(marketReturn);
     } else {
       marketReturns.push(0);

@@ -71,7 +71,7 @@ export default class Trade {
 
     const [timestamp, open, high, low, close] = this.currentCandle;
 
-    const currentPnl = this.calculatePnL(close!);
+    const currentPnl = this.calculatePnL();
     this.unrealizedPnL = currentPnl;
 
     if (currentPnl <= -100) {
@@ -98,12 +98,18 @@ export default class Trade {
     return this;
   }
 
-  private calculatePnL(currentPrice: number): number {
-    return (
-      (this.side === "long"
-        ? 100 * (currentPrice / this.entry!) - 100
-        : 100 - 100 * (this.entry! / currentPrice)) * this.leverage
-    );
+  private calculatePnL(): number {
+    if (!this.currentCandle) return 0;
+    const exit = this.currentCandle[4]!;
+
+    const basePnL =
+      this.side === "long"
+        ? 100 * (exit / this.entry!) - 100
+        : 100 - 100 * (exit / this.entry!);
+
+    const leveragedPnL = basePnL * this.leverage * this.contracts;
+
+    return leveragedPnL;
   }
 
   public close() {
@@ -123,12 +129,8 @@ export default class Trade {
     }
     if (!this.exitDate && this.currentCandle)
       this.exitDate = this.currentCandle[0]!;
-    this.pnl =
-      (this.side === "long"
-        ? 100 * (this.exit! / this.entry!) - 100
-        : 100 * (this.entry! / this.exit!) - 100) *
-      this.leverage *
-      this.contracts;
+    this.pnl = this.calculatePnL();
+    this.unrealizedPnL = 0;
     return this;
   }
 }

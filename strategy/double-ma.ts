@@ -24,18 +24,12 @@ export default function strategy(
 
   const side = fastMa > slowMa ? "long" : "short";
 
-  if (latestTrade) {
-    if (latestTrade.side !== side && !latestTrade.closed) {
-      latestTrade?.close();
-      const trade = new Trade().setSide(side).setContracts(1).setLeverage(1);
-      return trade;
-    }
-  } else {
-    const trade = new Trade().setSide(side).setContracts(1).setLeverage(1);
-    return trade;
-  }
+  if (!latestTrade)
+    return new Trade().setSide(side).setContracts(1).setLeverage(1);
+
+  if (latestTrade.side === side) return null;
+  if (latestTrade.closed) return new Trade().setSide(side).setContracts(1).setLeverage(1);
+
+  latestTrade?.close();
+  return new Trade().setSide(side).setContracts(1).setLeverage(1);
 }
-
-// export const preload = (candles: OHLCV[], store: Map<string, any>) => {
-
-// }

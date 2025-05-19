@@ -81,7 +81,7 @@ const optimizedParameters = optimizer([
 // explain ADF, CADF, C = Aa + Bb + Cc + Dd for making assets whose properties are more favorable
 // explain spread, stationary assets
 // TODO: graph RSI, see whats wrong with returns
-
+// expand data 
 
 const assets = [
   {
@@ -134,6 +134,9 @@ const backtestingPromises = assets.map(async (asset) => {
   const { default: data } = await import(asset.path, {
     with: { type: "json" },
   });
+
+  console.log(`Backtesting ${asset.pair} with ${data.length} data points`);
+
   const backtestResults = await backtest(
     data,
     strat,
@@ -148,6 +151,7 @@ const backtestingPromises = assets.map(async (asset) => {
       },
     }
   );
+
   const backtestGroupPath = `./backtests/${backtestGroupId}`;
 
   fs.mkdirSync(backtestGroupPath);
